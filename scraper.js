@@ -12,7 +12,22 @@ async function extractTableData(page) {
             };
 
             // Try to get fund name from title or header
-            const titleElement = document.querySelector('h1, h2, .fund-name, [class*="title"]');
+            // Look for specific patterns in ScanX Trade pages
+            let titleElement = document.querySelector('h1.text-2xl, h1');
+
+            // If we found an h1, check if it contains "Insights" (ScanX header)
+            // If so, try to find the actual fund name from breadcrumb or subtitle
+            if (titleElement && titleElement.innerText.includes('Insights')) {
+                // Try breadcrumb or subtitle
+                const breadcrumb = document.querySelector('[class*="breadcrumb"] a:last-child, nav a:last-child');
+                if (breadcrumb) {
+                    titleElement = breadcrumb;
+                } else {
+                    // Try h2 or other headers
+                    titleElement = document.querySelector('h2, h3, [class*="fund-name"]');
+                }
+            }
+
             if (titleElement) {
                 result.fund_name = titleElement.innerText.trim();
             }
@@ -112,8 +127,29 @@ async function scrapeHoldingsData(url) {
     // Process and combine the data
     console.log('Processing data...');
 
+    // Extract fund name from URL as fallback
+    let fundName = sharesData.fund_name;
+    if (!fundName || fundName === 'Insights' || fundName === '') {
+      // Extract from URL: /mf-holdings/parag-parikh-flexi-cap-fund-direct-growth-holdings
+      const urlObj = new URL(url);
+      const urlPath = urlObj.pathname;
+      const urlParts = urlPath.split('/').filter(Boolean);
+      const lastPart = urlParts[urlParts.length - 1];
+
+      if (lastPart && lastPart.endsWith('-holdings')) {
+        // Remove '-holdings' suffix and convert to title case
+        const nameSlug = lastPart.replace('-holdings', '');
+        fundName = nameSlug
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      } else {
+        fundName = 'Unknown Fund';
+      }
+    }
+
     const combinedData = {
-      fund_name: sharesData.fund_name || 'Unknown Fund',
+      fund_name: fundName,
       months_available: sharesData.headers.slice(1),
       stocks: [],
       total_stocks: sharesData.rows.length,
