@@ -177,16 +177,17 @@ Scraping completed successfully: Parag Parikh Flexi Cap Fund
 ### Build and Run
 
 ```bash
-# Build the image
-docker-compose build
-
-# Start the container
+# Build and start all containers (scraper + cloudflared)
 docker-compose up -d
 
-# View logs
+# View logs from all containers
 docker-compose logs -f
 
-# Stop the container
+# View logs from specific container
+docker-compose logs -f fund-scraper
+docker-compose logs -f cloudflared
+
+# Stop all containers
 docker-compose down
 ```
 
@@ -238,69 +239,41 @@ docker-compose exec scraper sh
    BLOB_READ_WRITE_TOKEN=<your-vercel-blob-token>
    ```
 
-4. **Start with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+4. **Get Cloudflare Tunnel Token**
 
-5. **Setup Cloudflare Tunnel**
+   Go to [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
+   - Navigate to Networks → Tunnels
+   - Create a new tunnel (or use existing)
+   - Copy the tunnel token
+   - Add `TUNNEL_TOKEN` to your `.env` file
 
-   Install cloudflared:
-   ```bash
-   wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-   sudo dpkg -i cloudflared-linux-amd64.deb
-   ```
-
-   Authenticate:
-   ```bash
-   cloudflared tunnel login
-   ```
-
-   Create tunnel:
-   ```bash
-   cloudflared tunnel create fund-scraper
-   ```
-
-   Configure tunnel via Docker Compose (`docker-compose.cloudflared.yml`):
-   ```yaml
-   version: '3.8'
-
-   services:
-     cloudflared:
-       image: cloudflare/cloudflared:latest
-       container_name: cloudflared
-       restart: unless-stopped
-       command: tunnel run
-       environment:
-         - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-       networks:
-         - fund-scraper-network
-
-   networks:
-     fund-scraper-network:
-       external: true
-   ```
-
-   Update your `.env` file with the `TUNNEL_TOKEN` (from your Cloudflare dashboard).
-
-   Then update your tunnel's ingress configuration in Cloudflare dashboard to point to:
+   In the tunnel configuration, set the service URL to:
    ```
    http://fund-scraper:3001
    ```
 
-   Start the Cloudflare Tunnel:
+5. **Start all services with Docker Compose**
    ```bash
-   docker-compose -f docker-compose.cloudflared.yml up -d
+   docker-compose up -d
    ```
+
+   This will start both:
+   - `fund-scraper` - The scraping server
+   - `cloudflared` - The Cloudflare Tunnel (waits for scraper to be healthy)
 
 6. **Verify deployment**
 
    Check both containers are running:
    ```bash
-   docker ps
+   docker-compose ps
    ```
 
-   Test the scraper endpoint:
+   Test locally:
+   ```bash
+   curl http://localhost:3001/health
+   ```
+
+   Test via tunnel:
    ```bash
    curl https://scraper.yourdomain.com/health
    ```
