@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  scraper:
+  fund-scraper:
     build: .
     container_name: fund-scraper
     restart: unless-stopped

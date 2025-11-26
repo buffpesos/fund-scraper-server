@@ -370,7 +370,7 @@ sudo chmod +x scripts/*
 
 Check logs:
 ```bash
-docker-compose logs scraper
+docker-compose logs fund-scraper
 ```
 
 Rebuild:
