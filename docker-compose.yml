@@ -25,4 +25,5 @@ services:
 
 networks:
   scraper-network:
+    name: fund-scraper-network
     driver: bridge

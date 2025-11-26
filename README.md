@@ -261,30 +261,46 @@ docker-compose exec scraper sh
    cloudflared tunnel create fund-scraper
    ```
 
-   Configure tunnel (`~/.cloudflared/config.yml`):
+   Configure tunnel via Docker Compose (`docker-compose.cloudflared.yml`):
    ```yaml
-   tunnel: <your-tunnel-id>
-   credentials-file: /root/.cloudflared/<your-tunnel-id>.json
+   version: '3.8'
 
-   ingress:
-     - hostname: scraper.yourdomain.com
-       service: http://localhost:3001
-     - service: http_status:404
+   services:
+     cloudflared:
+       image: cloudflare/cloudflared:latest
+       container_name: cloudflared
+       restart: unless-stopped
+       command: tunnel run
+       environment:
+         - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+       networks:
+         - fund-scraper-network
+
+   networks:
+     fund-scraper-network:
+       external: true
    ```
 
-   Route DNS:
-   ```bash
-   cloudflared tunnel route dns fund-scraper scraper.yourdomain.com
+   Update your `.env` file with the `TUNNEL_TOKEN` (from your Cloudflare dashboard).
+
+   Then update your tunnel's ingress configuration in Cloudflare dashboard to point to:
+   ```
+   http://fund-scraper:3001
    ```
 
-   Run as service:
+   Start the Cloudflare Tunnel:
    ```bash
-   sudo cloudflared service install
-   sudo systemctl start cloudflared
-   sudo systemctl enable cloudflared
+   docker-compose -f docker-compose.cloudflared.yml up -d
    ```
 
 6. **Verify deployment**
+
+   Check both containers are running:
+   ```bash
+   docker ps
+   ```
+
+   Test the scraper endpoint:
    ```bash
    curl https://scraper.yourdomain.com/health
    ```
