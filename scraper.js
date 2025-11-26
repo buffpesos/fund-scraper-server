@@ -136,13 +136,9 @@ async function scrapeHoldingsData(url) {
       const urlParts = urlPath.split('/').filter(Boolean);
       const lastPart = urlParts[urlParts.length - 1];
 
-      if (lastPart && lastPart.endsWith('-holdings')) {
-        // Remove '-holdings' suffix and convert to title case
-        const nameSlug = lastPart.replace('-holdings', '');
-        fundName = nameSlug
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+      if (lastPart) {
+        // Just use the URL slug as-is
+        fundName = lastPart;
       } else {
         fundName = 'Unknown Fund';
       }
